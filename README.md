@@ -4,9 +4,9 @@ A simple SQL query builder for Python.
 
 #### Design goals
 
-There already exists an excellent SQL query builder for Python in [Pypika](https://github.com/kayak/pypika). The main reason for using Squibble over Pypika is performance. And the reason that Squibble can offer better performance is a) that it uses mutable query objects, whereas Pypika guarantees immutability, and b) it is less complete and supposedly needs less overhead.
+The aim with Squibble is to provide a fast SQL query builder for Python with an intuitive API. Performance is prioritized over completeness or nice-to-have properties, such as immutability.
 
-While immutability is a nice property to have for writing correct code, it does come with a cost when new objects are created and data is copied.
+In fact, immutability is the main difference from the competing library [Pypika](https://github.com/kayak/pypika). Because Pypika guarantees immutability while Squibble does not, Squibble is able to benchmark better performance. In all other aspects Pypika is a better and much more complete and mature library.
 
 ## Tables
 
@@ -285,8 +285,8 @@ Alternatively the `SelectQuery` class can be initialized directly with the `Quer
 >>> ctx = Context()
 >>> Parameter(42).sql(ctx)
 ':1'
->>> ctx['1']
-42
+>>> ctx
+{'1': 42}
 
 ```
 
@@ -340,16 +340,19 @@ Alternatively the `SelectQuery` class can be initialized directly with the `Quer
 
 Raw Python values are automatically converted to either `RawSql` objects or to `Parameter` objects with some basic rules.
 
-When using raw Python values as positional arguments to `Query` methods such as `SelectQuery.select`, Query.where`, and `Query.join` they are automatically converted to `RawSql` objects. This means you can pass `str` objects to these methods to inject any sort of custom SQL code.
+When using raw Python values as positional arguments to `Query` methods such as `SelectQuery.select`, `Query.where`, and `Query.join` they are automatically converted to `RawSql` objects. This means you can pass `str` objects to these methods to inject any sort of custom SQL code.
 
 When using raw Python values as operators to other `Term` objects they are automatically converted to `Parameter` objects. This is usually also the case when using raw Python values as keyword arguments to methods such as `Query.where` or `Table.update`.
 
 If you need a different behaviour you cannot use raw Python values but need to pass in the desired type of `Term` object instead.
 
 ```python
->>> table.select('my bogus SQL').sql(Context())
+>>> ctx = Context()
+>>> table.select('my bogus SQL').sql(ctx)
 'SELECT my bogus SQL FROM mytable'
->>> table.select(table.x == 'my bogus SQL').sql(Context())
+>>> table.select(table.x == 'my bogus SQL').sql(ctx)
 'SELECT mytable.x = :1 FROM mytable'
+>>> ctx
+{'1': 'my bogus SQL'}
 
 ```

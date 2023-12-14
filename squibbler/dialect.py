@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from squibble import Column
-from squibble import (
+from squibbler import Column
+from squibbler import (
     Context,
     DeleteQuery,
     InsertQuery,

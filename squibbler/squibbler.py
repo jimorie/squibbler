@@ -431,9 +431,9 @@ class Column(OperatorTerm):
     >>> table = Table('mytable')
     >>> ctx = Context()
     >>> table.foo
-    <squibble.Column 'mytable.foo'>
+    <squibbler.Column 'mytable.foo'>
     >>> table.bar
-    <squibble.Column 'mytable.bar'>
+    <squibbler.Column 'mytable.bar'>
     >>> table.foo is table.foo
     True
     >>> Column('foo').sql(ctx)
@@ -474,7 +474,7 @@ class Column(OperatorTerm):
 
         Examples:
         >>> Column('foo').set(1)
-        {<squibble.Column 'foo'>: <squibble.Parameter 1>}
+        {<squibbler.Column 'foo'>: <squibbler.Parameter 1>}
         """
         return {self: wrap_operand(value)}
 
@@ -626,13 +626,13 @@ class Literal(OperatorTerm):
 
     Examples:
     >>> Literal('foo')
-    <squibble.Literal 'foo'>
+    <squibbler.Literal 'foo'>
     >>> Literal("'foo'")
-    <squibble.Literal '''foo'''>
+    <squibbler.Literal '''foo'''>
     >>> Literal(42)
-    <squibble.Literal 42>
+    <squibbler.Literal 42>
     >>> Literal(None)
-    <squibble.Literal NULL>
+    <squibbler.Literal NULL>
     """
 
     def __init__(self, value: RawType):
@@ -944,7 +944,7 @@ class SelectQuery(Query):
         >>> query.subselect().compilesql()
         'SELECT * FROM (SELECT * FROM mytable)'
         >>> query.where(foo=42)
-        <squibble.SelectQuery ...>
+        <squibbler.SelectQuery ...>
         >>> query.subselect().compilesql()
         'SELECT * FROM (SELECT * FROM mytable WHERE mytable.foo = :1)'
         >>> query.subselect().where(bar=42).compilesql()
@@ -1143,13 +1143,13 @@ class Table(Term):
     Examples:
     >>> table = Table("mytable")
     >>> table.foo
-    <squibble.Column 'mytable.foo'>
+    <squibbler.Column 'mytable.foo'>
     >>> table.select(table.foo, table.bar)
-    <squibble.SelectQuery ...>
+    <squibbler.SelectQuery ...>
     >>> table.insert(foo=42, bar=24)
-    <squibble.InsertQuery ...>
+    <squibbler.InsertQuery ...>
     >>> table.update(foo=43)
-    <squibble.UpdateQuery ...>
+    <squibbler.UpdateQuery ...>
     """
 
     select_cls = SelectQuery

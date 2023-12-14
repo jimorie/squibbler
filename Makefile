@@ -4,4 +4,4 @@ venv:
 
 .PHONY: test
 test:
-	venv/bin/python -m doctest -o ELLIPSIS squibble/squibble.py squibble/dialect.py README.md
+	venv/bin/python -m doctest -o ELLIPSIS squibbler/squibbler.py squibbler/dialect.py README.md

@@ -1,4 +1,4 @@
-from squibble.squibble import (
+from squibbler.squibbler import (
     Context,
     DeleteQuery,
     InsertQuery,

@@ -1,21 +1,21 @@
-# Squibble
+# Squibbler
 
 A simple SQL query builder for Python.
 
 #### Design goals
 
-The aim with Squibble is to provide a fast SQL query builder for Python with an intuitive API. Performance is prioritized over completeness or nice-to-have properties, such as immutability.
+The aim with Squibbler is to provide a fast SQL query builder for Python with an intuitive API. Performance is prioritized over completeness or nice-to-have properties, such as immutability.
 
-In fact, immutability is the main difference from the competing library [Pypika](https://github.com/kayak/pypika). Because Pypika guarantees immutability while Squibble does not, Squibble is able to benchmark better performance. In all other aspects Pypika is a better and much more complete and mature library.
+In fact, immutability is the main difference from the competing library [Pypika](https://github.com/kayak/pypika). Because Pypika guarantees immutability while Squibbler does not, Squibbler is able to benchmark better performance. In all other aspects Pypika is a better and much more complete and mature library.
 
 ## Tables
 
 `Table` objects are the normal starting points when building a query.
 
 ```python
->>> from squibble import *
+>>> from squibbler import *
 >>> Table('mytable')
-<squibble.Table 'mytable'>
+<squibbler.Table 'mytable'>
 
 ```
 

@@ -5,7 +5,7 @@ import typing
 
 
 if typing.TYPE_CHECKING:
-    from typing import Callable
+    from typing import Callable, Protocol
 
     RawType = str | int | float | bool | None
     AnyTerm = Term | RawType
@@ -43,6 +43,7 @@ class Context(dict):
 
     STRING_DELIMITER = "'"
     DIALECT_OPERATORS = {}
+    QUERY_MODE = None
 
     def resolve_param(self, value: RawType) -> str:
         """
@@ -61,9 +62,7 @@ class Context(dict):
         if isinstance(value, bool):
             return str(int(value))
         if isinstance(value, str):
-            return (
-                f"'{value.replace(cls.STRING_DELIMITER, cls.STRING_DELIMITER * 2)}'"
-            )
+            return f"'{value.replace(cls.STRING_DELIMITER, cls.STRING_DELIMITER * 2)}'"
         return str(value)
 
 
@@ -464,7 +463,11 @@ class Column(OperatorTerm):
 
     def sql(self, ctx: Context) -> str:
         """Return this term as SQL with the given `ctx`."""
-        if self._table and isinstance(self._table, Table):
+        if (
+            self._table
+            and isinstance(self._table, Table)
+            and ctx.QUERY_MODE != "INSERT"
+        ):
             return f"{self._table._alias or self._table._name}.{self._name}"
         return self._name
 
@@ -695,11 +698,14 @@ class Query(OperatorTerm):
     context_cls = Context
     separator = " "
 
-    def __init__(self, table: Term | None = None):
+    def __init__(self, table: Term | None = None, connection: Protocol | None = None):
         """Create a `Query` for the given `table`."""
         if isinstance(table, Query):
             table = table.group()
         self._table: Term | None = table
+        self._conn: Protocol | None = connection
+        if self._conn is None and self._table and isinstance(self._table, Table):
+            self._conn = self._table._conn
         self._where: AnyTerm = None
         self._joins: list[tuple[str, Table, AnyTerm]] = []
 
@@ -859,7 +865,9 @@ class Query(OperatorTerm):
         terms: AnyTerms,
         params: dict[str, RawType],
     ) -> Query:
-        joincond = ConditionalTerm(self._wrap_args(terms), False, params) if terms else None
+        joincond = (
+            ConditionalTerm(self._wrap_args(terms), False, params) if terms else None
+        )
         self._joins.append((jointype, self._wrap_arg(jointable), joincond))
         return self
 
@@ -883,6 +891,23 @@ class Query(OperatorTerm):
         if isinstance(term, str):
             return RawSql(term)
         return Literal(term)
+
+    ### DB API METHODS ###
+
+    def execute(self) -> Protocol:
+        assert self._conn, "Cannot execute without a DB API connection"
+        sql, ctx = self.compile()
+        cursor = self._conn.cursor()
+        cursor.execute(sql, ctx)
+        return cursor
+
+    def fetchmany(self, *args, **kwargs) -> Any:
+        cursor = self.execute()
+        return cursor.fetchmany(*args, **kwargs)
+
+    def fetchall(self) -> Any:
+        cursor = self.execute()
+        return cursor.fetchall()
 
 
 class SelectQuery(Query):
@@ -1094,14 +1119,15 @@ class InsertQuery(UpdateQuery):
 
     >>> table = Table("mytable")
     >>> table.insert(foo=42).compile()
-    ('INSERT INTO mytable (mytable.foo) VALUES (:1)', {'1': 42})
+    ('INSERT INTO mytable (foo) VALUES (:1)', {'1': 42})
     >>> table.insert(foo=42, bar=23).compile()
-    ('INSERT INTO mytable (mytable.foo, mytable.bar) VALUES (:1, :2)', {'1': 42, '2': 23})
+    ('INSERT INTO mytable (foo, bar) VALUES (:1, :2)', {'1': 42, '2': 23})
     >>> table.insert(table.foo.set(23)).compile()
-    ('INSERT INTO mytable (mytable.foo) VALUES (:1)', {'1': 23})
+    ('INSERT INTO mytable (foo) VALUES (:1)', {'1': 23})
     """
 
     def sql(self, ctx: Context) -> str:
+        ctx.QUERY_MODE = "INSERT"
         parts = []
         parts.append("INSERT INTO")
         parts.append(self._table.sql(ctx))
@@ -1157,13 +1183,16 @@ class Table(Term):
     update_cls = UpdateQuery
     delete_cls = DeleteQuery
 
-    def __init__(self, name: str, alias: str = None):
+    def __init__(
+        self, name: str, alias: str | None = None, connection: Protocol | None = None
+    ):
         """
         Create a `Table` with name `name`. If `alias` is given, this will be
         used as shorthand in queries.
         """
         self._name = name
         self._alias = alias
+        self._conn = connection
         self._columns = {}
 
     def __repr__(self):
@@ -1222,3 +1251,53 @@ class Table(Term):
     def delete(self) -> DeleteQuery:
         """Return a `DeleteQuery` for this table."""
         return self.delete_cls(self)
+
+
+class Database:
+    """
+    Represents a SQL database and distributes a provided DB-API
+    connection to all tables and queries created from it. Used as
+    a factory for `Table` objects.
+
+    Examples:
+    >>> import sqlite3
+    >>> conn = sqlite3.connect(":memory:")
+    >>> conn.execute("CREATE TABLE foo(key TEXT, val TEXT)")
+    <sqlite3.Cursor object ...>
+    >>> conn.commit()
+    >>> db = Database(conn)
+    >>> db.foo
+    <squibbler.Table 'foo'>
+    >>> db.foo is db.foo
+    True
+    >>> db.foo.insert(key="foo", val="42").execute()
+    <sqlite3.Cursor object ...>
+    >>> db.foo.insert(key="bar", val="43").execute()
+    <sqlite3.Cursor object ...>
+    >>> db.foo.select().fetchall()
+    [('foo', '42'), ('bar', '43')]
+    >>> db.foo.select(db.foo.val).where(key="bar").fetchall()
+    [('43',)]
+    """
+
+    def __init__(self, connection: Protocol):
+        """
+        Create a `Database` using the given DB-API connection.
+        """
+        self._conn = connection
+        self._tables = {}
+
+    def __getattr__(self, attr: str):
+        """If `attr` does not exist, instead return a `Table` for this `Database`."""
+        try:
+            return super().__getattr__(attr)
+        except AttributeError:
+            return self[attr]
+
+    def __getitem__(self, item: str):
+        """Return a `Table` for this `Database`."""
+        try:
+            return self._tables[item]
+        except KeyError:
+            self._tables[item] = Table(item, connection=self._conn)
+        return self._tables[item]

@@ -1,11 +1,12 @@
 from squibbler.squibbler import (
     Context,
+    Database,
     DeleteQuery,
     InsertQuery,
     SelectQuery,
     Table,
     UpdateQuery,
-    Param,
+    Parameter,
     Literal,
     RawSql,
 )

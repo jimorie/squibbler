@@ -103,7 +103,7 @@ SQL labels for selected objects can be created with the `Term.alias` method.
 
 ```python
 >>> table.insert(foo=42).compile()
-('INSERT INTO mytable (mytable.foo) VALUES (:1)', {'1': 42})
+('INSERT INTO mytable (foo) VALUES (:1)', {'1': 42})
 
 ```
 

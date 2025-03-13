@@ -617,7 +617,7 @@ class Parameter(OperatorTerm):
         return f"<{self.__module__}.{self.__class__.__name__} {repr(self._value)}>"
 
     def sql(self, ctx: Context) -> str:
-        """ """
+        """Return this term as SQL with the given `ctx`."""
         return ctx.resolve_param(self._value)
 
 
@@ -688,6 +688,7 @@ class RawSql(OperatorTerm):
         self._value = value
 
     def sql(self, ctx: Context) -> str:
+        """Return this term as SQL with the given `ctx`."""
         return str(self._value)
 
 
@@ -924,7 +925,7 @@ class SelectQuery(Query):
         self._offset: int = 0
 
     def sql(self, ctx: Context) -> str:
-        """Return this term as SQL with the given `ctx`."""
+        """Return this query as SQL with the given `ctx`."""
         parts = []
         parts.append("SELECT")
         if self._distinct:
@@ -1097,6 +1098,7 @@ class UpdateQuery(Query):
         return cls(table, kwargs)
 
     def sql(self, ctx: Context) -> str:
+        """Return this query as SQL with the given `ctx`."""
         parts = []
         parts.append("UPDATE")
         parts.append(self._table.sql(ctx))
@@ -1127,6 +1129,7 @@ class InsertQuery(UpdateQuery):
     """
 
     def sql(self, ctx: Context) -> str:
+        """Return this query as SQL with the given `ctx`."""
         ctx.QUERY_MODE = "INSERT"
         parts = []
         parts.append("INSERT INTO")
@@ -1153,6 +1156,7 @@ class DeleteQuery(Query):
     """
 
     def sql(self, ctx: Context) -> str:
+        """Return this query as SQL with the given `ctx`."""
         parts = []
         parts.append("DELETE FROM")
         parts.append(self._table.sql(ctx))
@@ -1215,9 +1219,7 @@ class Table(Term):
         return self._columns[item]
 
     def sql(self, ctx: Context) -> str:
-        """
-        Return this term as SQL for the given `query`.
-        """
+        """Return this term as SQL for the given `ctx`."""
         if self._alias:
             return f"{self._name} AS {self._alias}"
         return self._name

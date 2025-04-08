@@ -3,6 +3,7 @@ from __future__ import annotations
 from squibbler import Column
 from squibbler import (
     Context,
+    Database,
     DeleteQuery,
     InsertQuery,
     SelectQuery,
@@ -64,3 +65,9 @@ class SQLiteTable(Table):
     insert_cls = SQLiteInsertQuery
     update_cls = SQLiteUpdateQuery
     delete_cls = SQLiteDeleteQuery
+
+
+class SQLiteDatabase(Database):
+    """Database class for the SQLite dialect."""
+
+    table_cls = SQLiteTable

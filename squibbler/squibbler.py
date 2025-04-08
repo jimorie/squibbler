@@ -1282,6 +1282,8 @@ class Database:
     [('43',)]
     """
 
+    table_cls = Table
+
     def __init__(self, connection: Protocol):
         """
         Create a `Database` using the given DB-API connection.
@@ -1301,5 +1303,5 @@ class Database:
         try:
             return self._tables[item]
         except KeyError:
-            self._tables[item] = Table(item, connection=self._conn)
+            self._tables[item] = self.table_cls(item, connection=self._conn)
         return self._tables[item]

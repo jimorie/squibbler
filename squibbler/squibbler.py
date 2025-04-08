@@ -5,10 +5,10 @@ import typing
 
 
 if typing.TYPE_CHECKING:
-    from typing import Callable, Protocol
+    from typing import Any, Callable, Protocol
 
     RawType = str | int | float | bool | None
-    AnyTerm = Term | RawType
+    AnyTerm = 'Term' | RawType
     AnyTerms = list[AnyTerm]
 
 

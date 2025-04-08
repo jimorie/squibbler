@@ -202,6 +202,27 @@ class OperatorTerm(Term):
         """
         return self.in_(other, True)
 
+    def contains(self, substr: str) -> CompositeTerm:
+        """Apply a contains test between this term and `substr`."""
+        return self.like(f"%{substr}%")
+
+    def startswith(self, prefix: str) -> CompositeTerm:
+        """Apply a startswith test between this term and `prefix`."""
+        return self.like(f"{prefix}%")
+
+    def endswith(self, postfix: str) -> CompositeTerm:
+        """Apply a endswith test between this term and `postfix`."""
+        return self.like(f"%{postfix}")
+
+    def like(self, other: str) -> CompositeTerm:
+        """Apply a LIKE test between this term and `other`.
+
+        Examples:
+        >>> Column('foo').like('b_r').sql(Context())
+        'foo LIKE :1'
+        """
+        return CompositeTerm("{} LIKE {}", self, wrap_operand(other))
+
     @operator
     def and_(self: OperatorTerm, other: OperatorTerm) -> CompositeTerm:
         """Apply an AND test between this term and `other`.
@@ -1276,10 +1297,14 @@ class Database:
     <sqlite3.Cursor object ...>
     >>> db.foo.insert(key="bar", val="43").execute()
     <sqlite3.Cursor object ...>
+    >>> db.foo.insert({"key": "foobar", "val": "44"}).execute()
+    <sqlite3.Cursor object ...>
     >>> db.foo.select().fetchall()
-    [('foo', '42'), ('bar', '43')]
+    [('foo', '42'), ('bar', '43'), ('foobar', '44')]
     >>> db.foo.select(db.foo.val).where(key="bar").fetchall()
     [('43',)]
+    >>> db.foo.select(db.foo.val).where(db.foo.key.contains("oba")).fetchall()
+    [('44',)]
     """
 
     table_cls = Table

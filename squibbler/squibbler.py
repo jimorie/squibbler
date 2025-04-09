@@ -597,22 +597,50 @@ class ConditionalTerm(JoinedTerm):
         Create a `ConditionalTerm` with the given `terms`. If `isor` is `True` use
         OR separator, otherwise AND.
         """
+        if len(terms) > 1:
+            terms = [
+                term.group() if isinstance(term, ConditionalTerm) and len(term._terms) > 1 else term
+                for term in terms
+            ]
         super().__init__(terms, " OR " if isor else " AND ")
         self._context = ctx
-
-    def add(
-        self,
-        terms: list[OperatorTerm],
-        isor: bool = False,
-        ctx: Context[str, RawType] | None = None,
-    ):
-        pass
 
     def sql(self, ctx: Context) -> str:
         """Return this term as SQL with the given `ctx`."""
         if self._context:
             ctx.update(self._context)
         return super().sql(ctx)
+
+
+class All(ConditionalTerm):
+    """
+    Represents a group of conditional terms joined by AND.
+
+    >>> table = Table('foo')
+    >>> table.select(table.value).where(All(table.name.startswith("bar"), table.value > 42)).compile()
+    ('SELECT foo.value FROM foo WHERE foo.name LIKE :1 AND foo.value > :2', {'1': 'bar%', '2': 42})
+    """
+
+    def __init__(self, *terms: list[OperatorTerm], ctx: Context[str, RawType] | None = None):
+        super().__init__(terms, isor=False, ctx=ctx)
+
+
+class Any(ConditionalTerm):
+    """
+    Represents a group of conditional terms joined by OR.
+
+    >>> table = Table('foo')
+    >>> table.select(table.value).where(
+    ...     Any(
+    ...         table.name.startswith("bar"),
+    ...         All(table.value > 42, table.value < 84)
+    ...     )
+    ... ).compile()
+    ('SELECT foo.value FROM foo WHERE foo.name LIKE :1 OR (foo.value > :2 AND foo.value < :3)', {'1': 'bar%', '2': 42, '3': 84})
+    """
+
+    def __init__(self, *terms: list[OperatorTerm], ctx: Context[str, RawType] | None = None):
+        super().__init__(terms, isor=True, ctx=ctx)
 
 
 class Parameter(OperatorTerm):
@@ -728,7 +756,7 @@ class Query(OperatorTerm):
         self._conn: Protocol | None = connection
         if self._conn is None and self._table and isinstance(self._table, Table):
             self._conn = self._table._conn
-        self._where: AnyTerm = None
+        self._where: ConditionalTerm | None = None
         self._joins: list[tuple[str, Table, AnyTerm]] = []
 
     def compile(self) -> tuple[str, Context]:
@@ -872,10 +900,6 @@ class Query(OperatorTerm):
         else:
             return self
         if self._where:
-            if isinstance(self._where, ConditionalTerm) and len(self._where._terms) > 1:
-                self._where = self._where.group()
-            if len(terms) > 1:
-                conditional = conditional.group()
             conditional = ConditionalTerm([self._where, conditional], isor)
         self._where = conditional
         return self

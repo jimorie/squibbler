@@ -148,7 +148,7 @@ Both `Table.insert` and `Table.update` can also take `dict` arguments with the v
     ('SELECT * FROM mytable WHERE mytable.id = :1', {'1': 42})
     >>> table.select().where(table.id == 42, table.name == 'Zaphod').compile()
     ('SELECT * FROM mytable WHERE mytable.id = :1 AND mytable.name = :2', {'1': 42, '2': 'Zaphod'})
-    >>> table.select().where(table.id.in_([42, 43, 44])).compile()
+    >>> table.select().where(table.id.isin([42, 43, 44])).compile()
     ('SELECT * FROM mytable WHERE mytable.id IN (:1, :2, :3)', {'1': 42, '2': 43, '3': 44})
 
     ```
@@ -329,7 +329,7 @@ Alternatively the `SelectQuery` class can be initialized directly with the `Quer
 ```python
 >>> (table.x + table.y).sql(Context())
 'mytable.x + mytable.y'
->>> table.x.in_([Literal(1), Literal(2), Literal(3)]).sql(Context())
+>>> table.x.isin([Literal(1), Literal(2), Literal(3)]).sql(Context())
 'mytable.x IN (1, 2, 3)'
 >>> table.x.max().sql(Context())
 'MAX(mytable.x)'

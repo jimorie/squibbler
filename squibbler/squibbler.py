@@ -179,28 +179,28 @@ class OperatorTerm(Term):
         """
         return CompositeTerm("{} IS NOT NULL", self)
 
-    def in_(self, other: OperatorTerm | list, not_: bool = False) -> CompositeTerm:
+    def isin(self, other: OperatorTerm | list, negate: bool = False) -> CompositeTerm:
         """Apply an IN test between this term and `other`.
 
         Examples:
-        >>> Column('foo').in_([1, 2, 3]).sql(Context())
+        >>> Column('foo').isin([1, 2, 3]).sql(Context())
         'foo IN (:1, :2, :3)'
         """
         if isinstance(other, (tuple, list)):
             other = JoinedTerm([wrap_operand(t) for t in other]).group()
         else:
             other = wrap_operand(other)
-        formatstr = "{} NOT IN {}" if not_ else "{} IN {}"
+        formatstr = "{} NOT IN {}" if negate else "{} IN {}"
         return CompositeTerm(formatstr, self, other)
 
-    def notin(self, other: OperatorTerm | list) -> CompositeTerm:
+    def isnotin(self, other: OperatorTerm | list) -> CompositeTerm:
         """Apply an NOT IN test between this term and `other`.
 
         Examples:
-        >>> Column('foo').notin([1, 2, 3]).sql(Context())
+        >>> Column('foo').isnotin([1, 2, 3]).sql(Context())
         'foo NOT IN (:1, :2, :3)'
         """
-        return self.in_(other, True)
+        return self.isin(other, True)
 
     def contains(self, substr: str) -> CompositeTerm:
         """Apply a contains test between this term and `substr`."""
@@ -798,7 +798,7 @@ class Query(OperatorTerm):
         ('SELECT * FROM mytable WHERE mytable.id = :1', {'1': 42})
         >>> table.select().where(table.id == 42, table.name == 'Zaphod').compile()
         ('SELECT * FROM mytable WHERE mytable.id = :1 AND mytable.name = :2', {'1': 42, '2': 'Zaphod'})
-        >>> table.select().where(table.id.in_([42, 43, 44])).compile()
+        >>> table.select().where(table.id.isin([42, 43, 44])).compile()
         ('SELECT * FROM mytable WHERE mytable.id IN (:1, :2, :3)', {'1': 42, '2': 43, '3': 44})
 
         3) `terms` consisting of `str` objects for custom snippets of SQL code.

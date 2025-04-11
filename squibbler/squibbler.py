@@ -947,14 +947,6 @@ class Query(OperatorTerm):
         cursor.execute(sql, ctx)
         return cursor
 
-    def fetchmany(self, *args, **kwargs) -> Any:
-        cursor = self.execute()
-        return cursor.fetchmany(*args, **kwargs)
-
-    def fetchall(self) -> Any:
-        cursor = self.execute()
-        return cursor.fetchall()
-
 
 class SelectQuery(Query):
     """Represents a SELECT query."""
@@ -1106,6 +1098,33 @@ class SelectQuery(Query):
         """
         self._offset = self._wrap_arg(n)
         return self
+
+    ### DB API METHODS ###
+
+    def fetchall(self) -> Any:
+        """Queries the database and returns all matching rows."""
+        cursor = self.execute()
+        return cursor.fetchall()
+
+    def fetchmany(self, *args, **kwargs) -> Any:
+        """Queries the database and returns all matching rows."""
+        cursor = self.execute()
+        return cursor.fetchmany(*args, **kwargs)
+
+    def fetchone(self) -> Any:
+        """Queries the database and returns the first row, or `None`."""
+        cursor = self.execute()
+        return cursor.fetchone()
+
+    def fetchvalues(self):
+        """Queries the database and returns the first selected values."""
+        for row in self.fetchall():
+            yield row[0]
+
+    def fetchonevalue(self):
+        """Queries the database and returns the first value in the first row."""
+        row = self.fetchone()
+        return row and row[0]
 
 
 class UpdateQuery(Query):
@@ -1327,8 +1346,8 @@ class Database:
     [('foo', '42'), ('bar', '43'), ('foobar', '44')]
     >>> db.foo.select(db.foo.val).where(key="bar").fetchall()
     [('43',)]
-    >>> db.foo.select(db.foo.val).where(db.foo.key.contains("oba")).fetchall()
-    [('44',)]
+    >>> db.foo.select(db.foo.val).where(db.foo.key.contains("oba")).fetchone()
+    ('44',)
     """
 
     table_cls = Table
